@@ -78,7 +78,10 @@ def analyze_error(
             "user_message": str
         }
     """
-    import google.generativeai as genai
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from core.gemini_client import get_model
 
     if attempt >= max_attempts:
         print(f"[ErrorHandler] ⚠️ Max attempts reached for step {step.get('step')} — forcing replan")
@@ -148,10 +151,12 @@ def generate_fix(step: dict, error: str, fix_suggestion: str) -> dict:
 
     Returns a modified step dict.
     """
-    import google.generativeai as genai
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from core.gemini_client import get_model
 
-    genai.configure(api_key=_get_api_key())
-    model = genai.GenerativeModel(model_name="gemini-2.0-flash")
+    model = get_model(model_name="gemini-2.0-flash")
 
     prompt = f"""A task step failed. Generate a replacement step.
 

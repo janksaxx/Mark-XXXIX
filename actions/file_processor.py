@@ -32,8 +32,8 @@ from core.gemini_client import get_client
 
 def _gemini_client():
     """Get optimized Gemini client with connection pooling."""
-    client = get_client("gemini-2.5-flash")
-    return client.models
+    from core.gemini_client import get_model
+    return get_model("gemini-2.5-flash")
 
 
 def _detect_type(path: Path) -> str:

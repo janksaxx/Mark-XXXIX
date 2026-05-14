@@ -103,9 +103,11 @@ def _execute_generated_code(code: str, player=None) -> str:
 
 def _ask_gemini_for_desktop_action(task: str) -> str:
 
-    import google.generativeai as genai
-    genai.configure(api_key=_get_api_key())
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from core.gemini_client import get_model
+    model = get_model("gemini-2.5-flash")
 
     desktop = str(_get_desktop())
 

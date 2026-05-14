@@ -27,9 +27,8 @@ def _get_gemini(model: str = GEMINI_MODEL):
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from core.gemini_client import get_client
-    client = get_client(model)
-    return client.models
+    from core.gemini_client import get_model
+    return get_model(model)
 
 
 def _clean_code(text: str) -> str:

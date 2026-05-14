@@ -158,10 +158,12 @@ def _get_transcript(video_id: str) -> str | None:
 
 
 def _summarize_with_gemini(transcript: str, video_url: str) -> str:
-    import google.generativeai as genai
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from core.gemini_client import get_model
 
-    genai.configure(api_key=_get_api_key())
-    model = genai.GenerativeModel(
+    model = get_model(
         model_name="gemini-2.5-flash",
         system_instruction=(
             "You are JARVIS, an AI assistant. "

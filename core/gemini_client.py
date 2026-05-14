@@ -44,18 +44,50 @@ def get_client(model_name: str = "gemini-2.5-flash") -> genai.Client:
     return _client_cache[cache_key]
 
 
-def get_model(model_name: str = "gemini-2.5-flash"):
+def get_model(model_name: str = "gemini-2.5-flash", **config):
     """
-    Get a Gemini model instance using the new google.genai API.
+    Get a Gemini model wrapper for generate_content calls.
     
     Args:
         model_name: Model name (e.g., 'gemini-2.5-flash', 'gemini-2.0-flash-lite')
+        **config: Additional configuration (e.g., system_instruction, temperature, etc.)
     
     Returns:
-        Model instance for generate_content calls
+        Model wrapper with generate_content method
     """
     client = get_client(model_name)
-    return client.models.generate_content
+    
+    class ModelWrapper:
+        def __init__(self, client, model_name, **config):
+            self._client = client
+            self._model_name = model_name
+            self._config = config
+        
+        def generate_content(self, prompt, **kwargs):
+            """Generate content using the new API."""
+            # Merge config and kwargs
+            merged_config = {**self._config, **kwargs}
+            
+            # Handle system_instruction specially
+            system_instruction = merged_config.pop('system_instruction', None)
+            
+            # Build contents with system instruction if provided
+            if system_instruction:
+                contents = [
+                    {"role": "user", "parts": [{"text": system_instruction}]},
+                    {"role": "model", "parts": [{"text": "Understood."}]},
+                    {"role": "user", "parts": [{"text": str(prompt)}]}
+                ]
+            else:
+                contents = prompt
+            
+            return self._client.models.generate_content(
+                model=self._model_name,
+                contents=contents,
+                **merged_config
+            )
+    
+    return ModelWrapper(client, model_name, **config)
 
 
 def clear_cache():

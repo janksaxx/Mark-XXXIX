@@ -70,22 +70,30 @@ if self._gpu_available is False:  # Skip if previously failed
 **File**: `main.py`
 
 **Changes**:
-- ✅ Audio input queue: `unlimited` → `maxsize=50` (prevents memory bloat)
-- ✅ Output queue: `maxsize=10` → `maxsize=20` (smoother playback)
+- ✅ Audio input queue: `unlimited` → `maxsize=200` (prevents memory bloat, handles bursts)
+- ✅ Output queue: `maxsize=10` → `maxsize=50` (smoother playback)
 - ✅ Polling timeout: `0.1s` → `0.05s` (lower latency)
+- ✅ Queue full handling: Drops oldest chunk instead of crashing
 
 **Before**:
 ```python
 self.audio_in_queue = asyncio.Queue()  # Unlimited
 self.out_queue = asyncio.Queue(maxsize=10)
 timeout=0.1  # 100ms polling
+self.audio_in_queue.put_nowait(data)  # Crashes if full
 ```
 
 **After**:
 ```python
-self.audio_in_queue = asyncio.Queue(maxsize=50)  # Bounded
-self.out_queue = asyncio.Queue(maxsize=20)  # Larger buffer
+self.audio_in_queue = asyncio.Queue(maxsize=200)  # Bounded, larger buffer
+self.out_queue = asyncio.Queue(maxsize=50)  # Larger buffer
 timeout=0.05  # 50ms polling (lower latency)
+try:
+    self.audio_in_queue.put_nowait(data)
+except asyncio.QueueFull:
+    # Drop oldest chunk gracefully
+    self.audio_in_queue.get_nowait()
+    self.audio_in_queue.put_nowait(data)
 ```
 
 **Performance Gain**:
