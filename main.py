@@ -744,7 +744,15 @@ class JarvisLive:
                     if response.data:
                         if self._turn_done_event and self._turn_done_event.is_set():
                             self._turn_done_event.clear()
-                        self.audio_in_queue.put_nowait(response.data)
+                        try:
+                            self.audio_in_queue.put_nowait(response.data)
+                        except asyncio.QueueFull:
+                            # Queue full - drop oldest chunk to prevent blocking
+                            try:
+                                self.audio_in_queue.get_nowait()
+                                self.audio_in_queue.put_nowait(response.data)
+                            except:
+                                pass  # Skip this chunk if still can't add
 
                     if response.server_content:
                         sc = response.server_content
@@ -842,8 +850,8 @@ class JarvisLive:
                 ):
                     self.session        = session
                     self._loop          = asyncio.get_event_loop()
-                    self.audio_in_queue = asyncio.Queue(maxsize=50)  # Increased buffer
-                    self.out_queue      = asyncio.Queue(maxsize=20)  # Increased from 10
+                    self.audio_in_queue = asyncio.Queue(maxsize=200)  # Larger buffer for audio chunks
+                    self.out_queue      = asyncio.Queue(maxsize=50)  # Increased for better buffering
                     self._turn_done_event = asyncio.Event()
 
                     print("[JARVIS] ✅ Connected.")
