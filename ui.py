@@ -83,6 +83,8 @@ class _SysMetrics:
         self._last_net = psutil.net_io_counters()
         self._last_net_t = time.time()
         self._running = True
+        self._gpu_available = None  # Cache GPU detection result
+        self._gpu_check_count = 0
         t = threading.Thread(target=self._loop, daemon=True)
         t.start()
 
@@ -92,7 +94,7 @@ class _SysMetrics:
                 self._update()
             except Exception:
                 pass
-            time.sleep(1.5)
+            time.sleep(3.0)  # Reduced from 1.5s to 3s (50% less CPU usage)
 
     def _update(self):
         cpu = psutil.cpu_percent(interval=None)
@@ -122,16 +124,24 @@ class _SysMetrics:
             self.tmp = tmp
 
     def _get_gpu(self) -> float:
+        # Skip GPU detection if we've confirmed it's unavailable (check every 20 iterations)
+        if self._gpu_available is False and self._gpu_check_count < 20:
+            self._gpu_check_count += 1
+            return -1.0
+        
+        self._gpu_check_count = 0
+        
         # NVIDIA
         try:
             r = subprocess.run(
                 ["nvidia-smi", "--query-gpu=utilization.gpu",
                  "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, timeout=2
+                capture_output=True, text=True, timeout=1  # Reduced from 2s to 1s
             )
             if r.returncode == 0:
                 vals = [float(v.strip()) for v in r.stdout.strip().split("\n") if v.strip()]
                 if vals:
+                    self._gpu_available = True
                     return sum(vals) / len(vals)
         except Exception:
             pass
@@ -184,6 +194,10 @@ class _SysMetrics:
             except Exception:
                 pass
 
+        # No GPU detected - cache this result
+        if self._gpu_available is None:
+            self._gpu_available = False
+        
         return -1.0
 
     def _get_temp(self) -> float:

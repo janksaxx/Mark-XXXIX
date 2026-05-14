@@ -803,7 +803,7 @@ class JarvisLive:
                 try:
                     chunk = await asyncio.wait_for(
                         self.audio_in_queue.get(),
-                        timeout=0.1
+                        timeout=0.05  # Reduced from 0.1s for lower latency
                     )
                 except asyncio.TimeoutError:
                     if (
@@ -842,8 +842,8 @@ class JarvisLive:
                 ):
                     self.session        = session
                     self._loop          = asyncio.get_event_loop()
-                    self.audio_in_queue = asyncio.Queue()
-                    self.out_queue      = asyncio.Queue(maxsize=10)
+                    self.audio_in_queue = asyncio.Queue(maxsize=50)  # Increased buffer
+                    self.out_queue      = asyncio.Queue(maxsize=20)  # Increased from 10
                     self._turn_done_event = asyncio.Event()
 
                     print("[JARVIS] ✅ Connected.")
